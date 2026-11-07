@@ -39,128 +39,258 @@ export default function Home() {
           width: 100%;
           height: 100vh;
           height: 100dvh;
-          min-height: 0 !important;
           margin: 0 !important;
           display: grid;
           place-items: center;
           overflow: hidden;
           isolation: isolate;
-          background:
-            radial-gradient(ellipse at 50% 65%, #172c54 0%, #080d1b 45%, #02040a 100%);
-          animation: introExit 6.5s ease forwards !important;
+          perspective: 900px;
+          background: #000;
+          animation: infinityFade 9.2s ease forwards !important;
         }
 
+        /* Phase 1: hold on almost-total darkness. */
         .intro-stars {
           position: absolute;
-          inset: 0;
+          inset: -30%;
           z-index: 0;
+          opacity: 0;
           background-image:
-            radial-gradient(2px 2px at 15% 25%, #fff 60%, transparent),
-            radial-gradient(2px 2px at 75% 18%, #fff 60%, transparent),
-            radial-gradient(1px 1px at 45% 40%, #fff 60%, transparent),
-            radial-gradient(2px 2px at 85% 70%, #fff 60%, transparent),
-            radial-gradient(1px 1px at 25% 80%, #fff 60%, transparent);
-          background-size: 180px 180px;
-          opacity: .8;
-          animation: starDrift 18s linear infinite;
+            radial-gradient(1px 1px at 12% 18%, #fff 60%, transparent),
+            radial-gradient(1px 1px at 73% 22%, #fff 60%, transparent),
+            radial-gradient(1.5px 1.5px at 42% 66%, #dcecff 60%, transparent),
+            radial-gradient(1px 1px at 88% 74%, #fff 60%, transparent),
+            radial-gradient(1px 1px at 25% 83%, #fff 60%, transparent),
+            radial-gradient(1px 1px at 61% 47%, #fff 60%, transparent);
+          background-size: 240px 240px;
+          animation: starsWake 9.2s ease forwards;
+        }
+
+        /* Star field stretches into hyperspace streaks as A² approaches. */
+        .intro-warp {
+          position: absolute;
+          inset: -60%;
+          z-index: 1;
+          opacity: 0;
+          background:
+            repeating-conic-gradient(from 0deg at 50% 50%,
+              transparent 0deg 3.2deg,
+              rgba(130,190,255,.0) 3.2deg 3.35deg,
+              rgba(190,225,255,.72) 3.4deg 3.48deg,
+              transparent 3.55deg 7deg);
+          -webkit-mask-image: radial-gradient(ellipse at center, transparent 0 5%, #000 18% 70%, transparent 83%);
+          mask-image: radial-gradient(ellipse at center, transparent 0 5%, #000 18% 70%, transparent 83%);
+          animation: warpRush 3.1s cubic-bezier(.2,.7,.1,1) 1.15s both;
         }
 
         .intro-earth {
           position: absolute;
-          z-index: 1;
-          width: min(100vw, 760px);
+          z-index: 2;
+          width: min(145vw, 1050px);
           aspect-ratio: 1;
           border-radius: 50%;
-          bottom: -78%;
+          bottom: -92%;
+          opacity: 0;
           background:
-            radial-gradient(ellipse at 35% 28%, rgba(91,194,255,.5), transparent 28%),
-            radial-gradient(circle at 50% 40%, #2867a5, #0b2850 62%, #020611 76%);
+            radial-gradient(ellipse at 38% 22%, rgba(111,210,255,.35), transparent 24%),
+            radial-gradient(ellipse at 62% 34%, rgba(47,132,190,.28), transparent 25%),
+            radial-gradient(circle at 50% 42%, #23649b 0%, #10365f 38%, #07182f 66%, #010611 76%);
           box-shadow:
-            0 -12px 75px rgba(65,165,255,.75),
-            inset 0 20px 65px rgba(93,184,255,.35);
-          animation: earthRise 3.5s cubic-bezier(.16,.8,.3,1) forwards !important;
+            0 -5px 25px rgba(100,190,255,.5),
+            0 -25px 100px rgba(40,130,255,.32),
+            inset 0 24px 80px rgba(105,198,255,.22);
+          animation: earthReveal 2.2s cubic-bezier(.15,.75,.25,1) 2.7s forwards;
         }
 
+        .intro-earth::before {
+          content: "";
+          position: absolute;
+          inset: 1.5%;
+          border-radius: 50%;
+          border-top: 3px solid rgba(151,225,255,.65);
+          filter: blur(7px);
+          box-shadow: 0 -18px 45px rgba(74,180,255,.8);
+        }
+
+        .intro-earth::after {
+          content: "";
+          position: absolute;
+          inset: 5%;
+          border-radius: 50%;
+          background:
+            radial-gradient(ellipse at 30% 35%, rgba(70,155,105,.5), transparent 13%),
+            radial-gradient(ellipse at 64% 48%, rgba(65,145,100,.42), transparent 17%),
+            radial-gradient(ellipse at 48% 70%, rgba(48,120,95,.35), transparent 12%);
+          filter: blur(12px);
+          opacity: .8;
+        }
+
+        /* A² starts as a speck at the vanishing point, then rockets forward. */
         .intro-impact {
           position: absolute;
-          z-index: 2;
-          font-family: Georgia, serif;
-          font-size: clamp(7rem, 25vw, 15rem);
+          z-index: 4;
+          top: 39%;
+          left: 50%;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: clamp(6rem, 24vw, 14rem);
+          line-height: 1;
           font-weight: 900;
-          color: #fff0b3;
+          color: #fff1bd;
+          transform-style: preserve-3d;
+          transform-origin: center;
+          opacity: 0;
           text-shadow:
-            0 0 25px #e7bd65,
-            0 0 65px #c18b2e,
-            0 0 120px #a87928;
-          animation: impactDrop 2.2s cubic-bezier(.15,.8,.25,1) forwards !important;
+            0 0 8px #fff,
+            0 0 25px #f8d47b,
+            0 0 65px #d99b35,
+            0 0 130px #a96d22;
+          animation: infinityLaunch 3.15s cubic-bezier(.12,.78,.16,1) 1.15s both;
+        }
+
+        .intro-impact::before {
+          content: "";
+          position: absolute;
+          z-index: -1;
+          inset: 12%;
+          border-radius: 50%;
+          background: #ffcb68;
+          filter: blur(48px);
+          opacity: .75;
+        }
+
+        .intro-shockwave {
+          position: absolute;
+          z-index: 3;
+          left: 50%;
+          top: 61%;
+          width: 8vmin;
+          height: 8vmin;
+          border: 2px solid rgba(255,225,160,.95);
+          border-radius: 50%;
+          opacity: 0;
+          transform: translate(-50%,-50%) scale(.1);
+          box-shadow: 0 0 35px rgba(110,195,255,.9), inset 0 0 25px rgba(255,220,150,.6);
+          animation: shockwave 1.45s cubic-bezier(.12,.7,.18,1) 3.9s both;
+        }
+
+        .intro-flash {
+          position: absolute;
+          z-index: 6;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0;
+          background: radial-gradient(ellipse at 50% 59%, #fff 0%, #fff4cf 8%, rgba(106,190,255,.8) 23%, transparent 65%);
+          animation: impactFlash 1.1s ease-out 3.85s both;
         }
 
         .intro-caption {
           position: absolute;
-          z-index: 3;
-          top: 53%;
+          z-index: 7;
+          top: 47%;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 12px;
+          gap: 13px;
           width: 100%;
-          padding: 0 12px;
+          padding: 0 14px;
           opacity: 0;
-          animation: captionReveal 1.5s ease 2.6s forwards !important;
+          transform: translateY(22px);
+          animation: titleReveal 2s cubic-bezier(.2,.7,.2,1) 5.1s forwards;
         }
 
         .intro-caption span {
-          color: #e4ce9b;
-          font-size: .75rem;
-          letter-spacing: 7px;
+          color: #e8d2a1;
+          font-size: .72rem;
+          letter-spacing: .62em;
+          text-indent: .62em;
+          text-shadow: 0 0 18px rgba(255,210,130,.55);
         }
 
         .intro-caption strong {
-          color: #fff4d6;
-          font-family: Georgia, serif;
-          font-size: clamp(2rem, 8vw, 4.5rem);
-          letter-spacing: 2px;
+          color: #fff3d4;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: clamp(2rem, 8vw, 4.6rem);
+          letter-spacing: .035em;
           text-align: center;
-          text-shadow: 0 0 35px rgba(220,177,91,.7);
+          text-shadow: 0 0 18px rgba(255,235,190,.55), 0 0 55px rgba(220,166,77,.65);
         }
 
-        @keyframes impactDrop {
-          0% { transform: translateY(-120vh) scale(.3); opacity: 0; }
-          65% { transform: translateY(0) scale(1.12); opacity: 1; }
-          78% { transform: translateY(-25px) scale(.96); }
-          100% { transform: translateY(0) scale(1); }
+        @keyframes starsWake {
+          0%, 12% { opacity: 0; transform: scale(.8); }
+          25%, 100% { opacity: .8; transform: scale(1); }
         }
 
-        @keyframes earthRise {
-          from { transform: scale(.65); opacity: .1; }
-          to { transform: scale(1); opacity: 1; }
+        @keyframes warpRush {
+          0% { opacity: 0; transform: scale(.08) rotate(0deg); }
+          18% { opacity: .95; }
+          75% { opacity: .75; transform: scale(1.15) rotate(12deg); }
+          100% { opacity: 0; transform: scale(2.8) rotate(25deg); }
         }
 
-        @keyframes captionReveal {
-          from { opacity: 0; transform: translateY(25px); }
-          to { opacity: 1; transform: translateY(-15px); }
+        @keyframes infinityLaunch {
+          0% {
+            opacity: 0;
+            transform: translate3d(-50%,-50%,-2600px) scale(.006) rotate(-8deg);
+            filter: blur(3px);
+          }
+          12% {
+            opacity: .8;
+            transform: translate3d(-50%,-50%,-1700px) scale(.025) rotate(-5deg);
+            filter: blur(2px);
+          }
+          52% {
+            opacity: 1;
+            transform: translate3d(-50%,-50%,-220px) scale(.42) rotate(2deg);
+            filter: blur(1px);
+          }
+          72% {
+            opacity: 1;
+            transform: translate3d(-50%,-50%,90px) scale(1.18) rotate(0deg);
+            filter: blur(0);
+          }
+          84% {
+            opacity: 1;
+            transform: translate3d(-50%,22vh,0) scale(.72) rotate(0deg);
+          }
+          100% {
+            opacity: 0;
+            transform: translate3d(-50%,22vh,0) scale(.55);
+          }
         }
 
-        @keyframes starDrift {
-          to { background-position: 180px 180px; }
+        @keyframes earthReveal {
+          0% { opacity: 0; transform: scale(.82) translateY(10%); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
         }
 
-        @keyframes introExit {
-          0%, 80% { opacity: 1; visibility: visible; }
-          100% { opacity: 0; visibility: hidden; }
+        @keyframes shockwave {
+          0% { opacity: .95; transform: translate(-50%,-50%) scale(.1); }
+          100% { opacity: 0; transform: translate(-50%,-50%) scale(18); }
+        }
+
+        @keyframes impactFlash {
+          0% { opacity: 0; }
+          12% { opacity: 1; }
+          42% { opacity: .48; }
+          100% { opacity: 0; }
+        }
+
+        @keyframes titleReveal {
+          0% { opacity: 0; transform: translateY(22px); filter: blur(12px); }
+          35% { opacity: 1; filter: blur(0); }
+          100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+
+        @keyframes infinityFade {
+          0%, 88% { opacity: 1; visibility: visible; }
+          100% { opacity: 0; visibility: hidden; pointer-events: none; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .cinematic-intro {
-            animation: introExit .8s ease .5s forwards !important;
-          }
-          .intro-earth, .intro-impact, .intro-stars {
-            animation: none !important;
-          }
-          .intro-caption {
-            opacity: 1;
-            animation: none !important;
-          }
+          .cinematic-intro { animation: infinityFade 1s ease 1s forwards !important; }
+          .intro-stars, .intro-warp, .intro-earth, .intro-impact,
+          .intro-shockwave, .intro-flash, .intro-caption { animation: none !important; }
+          .intro-caption { opacity: 1; transform: none; }
         }
       `}</style>
 
@@ -169,8 +299,11 @@ export default function Home() {
         aria-label="A squared presents AYneetPYQ plus"
       >
         <div className="intro-stars" />
+        <div className="intro-warp" />
         <div className="intro-earth" />
+        <div className="intro-shockwave" />
         <div className="intro-impact">A²</div>
+        <div className="intro-flash" />
         <div className="intro-caption">
           <span>A² PRESENTS</span>
           <strong>AYneetPYQ+</strong>
