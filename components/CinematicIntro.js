@@ -198,7 +198,7 @@ export default function CinematicIntro() {
             transparent: true, opacity: 0, blending: THREE.AdditiveBlending,
           })
         );
-        ring.position.set(0, -8, -29);
+        ring.position.set(0, -8, -24);
         ring.rotation.x = Math.PI / 2.35;
         scene.add(ring);
         rings.push(ring);
@@ -213,6 +213,19 @@ export default function CinematicIntro() {
       );
       flash.position.set(0, -7, -5);
       scene.add(flash);
+
+      const explosion = new THREE.Mesh(
+        new THREE.SphereGeometry(2.2, 48, 32),
+        new THREE.MeshBasicMaterial({
+          color: 0xffc56e,
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        })
+      );
+      explosion.position.set(0, -8, -21.5);
+      scene.add(explosion);
 
       const titleCanvas = document.createElement("canvas");
       titleCanvas.width = 1800;
@@ -281,7 +294,7 @@ export default function CinematicIntro() {
           const dive = smooth(5.0, 5.8, t);
           const scale = .035 + approach * .48;
           logo.scale.setScalar(scale);
-          logo.position.z = -180 + approach * 166 - dive * 18;
+          logo.position.z = -180 + approach * 166 - dive * 9;
           logo.position.y = 1.5 - dive * 9.5;
           logo.position.x = Math.sin(t * 1.9) * approach * .45;
           logo.rotation.z = Math.sin(t * 2.8) * approach * .045;
@@ -303,6 +316,9 @@ export default function CinematicIntro() {
             ring.material.opacity = hit * (1 - ringProgress) * .98;
           });
           flash.material.opacity = Math.max(0, 1 - Math.abs(t - 5.72) * 2.1) * .95;
+          const blastLife = Math.max(0, 1 - (t - 5.68) / 1.15);
+          explosion.scale.setScalar(.15 + Math.max(0, t - 5.55) * 13);
+          explosion.material.opacity = Math.max(0, blastLife) * .9;
 
           const reveal = smooth(7.0, 8.35, t);
           title.material.opacity = reveal;
