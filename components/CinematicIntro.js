@@ -1,382 +1,132 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import * as THREE from "three";
-
-function makeTextTexture(text, options = {}) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1800;
-  canvas.height = 620;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = "900 440px Georgia, 'Times New Roman', serif";
-  ctx.shadowColor = options.glow || "#e9b957";
-  ctx.shadowBlur = 55;
-  ctx.fillStyle = options.color || "#fff0bd";
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 10);
-  ctx.shadowBlur = 18;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 10);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-function makeEarthTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 2048;
-  canvas.height = 1024;
-  const ctx = canvas.getContext("2d");
-  const ocean = ctx.createLinearGradient(0, 0, 0, 1024);
-  ocean.addColorStop(0, "#123b67");
-  ocean.addColorStop(.5, "#17639a");
-  ocean.addColorStop(1, "#061b38");
-  ctx.fillStyle = ocean;
-  ctx.fillRect(0, 0, 2048, 1024);
-
-  // Stylised continent silhouettes painted onto a spherical texture.
-  ctx.fillStyle = "#397d62";
-  ctx.beginPath();
-  ctx.moveTo(180,260); ctx.lineTo(300,180); ctx.lineTo(470,205); ctx.lineTo(540,300);
-  ctx.lineTo(475,390); ctx.lineTo(430,500); ctx.lineTo(350,545); ctx.lineTo(290,430);
-  ctx.lineTo(220,390); ctx.closePath(); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(500,560); ctx.lineTo(610,600); ctx.lineTo(650,730); ctx.lineTo(600,880);
-  ctx.lineTo(540,820); ctx.lineTo(510,690); ctx.closePath(); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(900,220); ctx.lineTo(1080,170); ctx.lineTo(1190,250); ctx.lineTo(1150,370);
-  ctx.lineTo(1040,420); ctx.lineTo(970,350); ctx.closePath(); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(1030,440); ctx.lineTo(1190,460); ctx.lineTo(1260,600); ctx.lineTo(1180,810);
-  ctx.lineTo(1090,760); ctx.lineTo(1020,600); ctx.closePath(); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(1260,240); ctx.lineTo(1450,180); ctx.lineTo(1660,250); ctx.lineTo(1770,370);
-  ctx.lineTo(1640,470); ctx.lineTo(1480,420); ctx.lineTo(1390,520); ctx.lineTo(1280,420);
-  ctx.closePath(); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(1570,590); ctx.lineTo(1690,620); ctx.lineTo(1730,760); ctx.lineTo(1650,850);
-  ctx.lineTo(1570,760); ctx.closePath(); ctx.fill();
-
-  // Soft cloud bands.
-  ctx.globalAlpha = .2;
-  for (let i = 0; i < 90; i++) {
-    const x = Math.random() * canvas.width;
-    const y = Math.random() * canvas.height;
-    const w = 30 + Math.random() * 150;
-    ctx.fillStyle = "#d7efff";
-    ctx.beginPath();
-    ctx.ellipse(x, y, w, 5 + Math.random() * 12, -.12, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
+import { useEffect, useState } from "react";
 
 export default function CinematicIntro() {
-  const hostRef = useRef(null);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return undefined;
-
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let renderer;
-    let frame = 0;
-    let disposed = false;
-
-    try {
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x000106);
-      scene.fog = new THREE.FogExp2(0x00030b, 0.00045);
-
-      const camera = new THREE.PerspectiveCamera(52, 1, .1, 1200);
-      camera.position.set(0, 0, 0);
-
-      renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: false,
-        powerPreference: "high-performance",
-      });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.65));
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.25;
-      host.appendChild(renderer.domElement);
-
-      const resize = () => {
-        const width = host.clientWidth || window.innerWidth;
-        const height = host.clientHeight || window.innerHeight;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height, false);
-      };
-      resize();
-      window.addEventListener("resize", resize);
-
-      scene.add(new THREE.AmbientLight(0x779ac7, .65));
-      const keyLight = new THREE.PointLight(0xffd28a, 950, 260);
-      keyLight.position.set(-12, 15, 30);
-      scene.add(keyLight);
-      const blueLight = new THREE.PointLight(0x258dff, 1400, 300);
-      blueLight.position.set(18, -18, -35);
-      scene.add(blueLight);
-
-      // Deep-space star volume.
-      const starCount = 3200;
-      const starPositions = new Float32Array(starCount * 3);
-      const starSizes = new Float32Array(starCount);
-      for (let i = 0; i < starCount; i++) {
-        starPositions[i * 3] = (Math.random() - .5) * 260;
-        starPositions[i * 3 + 1] = (Math.random() - .5) * 170;
-        starPositions[i * 3 + 2] = -Math.random() * 720;
-        starSizes[i] = .35 + Math.random() * 1.8;
-      }
-      const starGeometry = new THREE.BufferGeometry();
-      starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-      starGeometry.setAttribute("size", new THREE.BufferAttribute(starSizes, 1));
-      const starMaterial = new THREE.PointsMaterial({
-        color: 0xd8eaff, size: .75, transparent: true, opacity: .82,
-        sizeAttenuation: true, depthWrite: false,
-      });
-      const stars = new THREE.Points(starGeometry, starMaterial);
-      scene.add(stars);
-
-      // Earth: a real sphere with a painted surface and luminous atmosphere.
-      const earthGroup = new THREE.Group();
-      earthGroup.position.set(0, -23, -48);
-      scene.add(earthGroup);
-      const earth = new THREE.Mesh(
-        new THREE.SphereGeometry(22, 96, 64),
-        new THREE.MeshPhongMaterial({
-          map: makeEarthTexture(),
-          shininess: 22,
-          specular: new THREE.Color(0x5ca9df),
-        })
-      );
-      earth.rotation.z = -.12;
-      earthGroup.add(earth);
-
-      const atmosphere = new THREE.Mesh(
-        new THREE.SphereGeometry(22.8, 96, 64),
-        new THREE.MeshBasicMaterial({
-          color: 0x3eafff, transparent: true, opacity: .2,
-          side: THREE.BackSide, blending: THREE.AdditiveBlending,
-        })
-      );
-      earthGroup.add(atmosphere);
-
-      const cloudGlow = new THREE.PointLight(0x4caeff, 1800, 100);
-      cloudGlow.position.set(0, 8, 16);
-      earthGroup.add(cloudGlow);
-
-      // A² is a textured 3D plane in the scene, not a DOM element dropping over a background.
-      const logoTexture = makeTextTexture("A²");
-      const logoMaterial = new THREE.MeshBasicMaterial({
-        map: logoTexture, transparent: true, toneMapped: false,
-        side: THREE.DoubleSide, depthWrite: false,
-      });
-      const logo = new THREE.Mesh(new THREE.PlaneGeometry(13, 4.5), logoMaterial);
-      logo.position.set(0, 1.5, -180);
-      logo.scale.setScalar(.035);
-      scene.add(logo);
-
-      const logoGlow = new THREE.PointLight(0xffc76a, 0, 90);
-      logoGlow.position.set(0, 1.5, -12);
-      scene.add(logoGlow);
-
-      // Impact rings expand across the scene when the mark reaches the planet.
-      const rings = [];
-      for (let i = 0; i < 3; i++) {
-        const ring = new THREE.Mesh(
-          new THREE.TorusGeometry(3 + i * 1.5, .055, 12, 128),
-          new THREE.MeshBasicMaterial({
-            color: i === 1 ? 0x65caff : 0xffd58a,
-            transparent: true, opacity: 0, blending: THREE.AdditiveBlending,
-          })
-        );
-        ring.position.set(0, -8, -24);
-        ring.rotation.x = Math.PI / 2.35;
-        scene.add(ring);
-        rings.push(ring);
-      }
-
-      const flash = new THREE.Mesh(
-        new THREE.PlaneGeometry(240, 150),
-        new THREE.MeshBasicMaterial({
-          color: 0xffe6b2, transparent: true, opacity: 0,
-          blending: THREE.AdditiveBlending, depthWrite: false,
-        })
-      );
-      flash.position.set(0, -7, -5);
-      scene.add(flash);
-
-      const explosion = new THREE.Mesh(
-        new THREE.SphereGeometry(2.2, 48, 32),
-        new THREE.MeshBasicMaterial({
-          color: 0xffc56e,
-          transparent: true,
-          opacity: 0,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-        })
-      );
-      explosion.position.set(0, -8, -21.5);
-      scene.add(explosion);
-
-      const titleCanvas = document.createElement("canvas");
-      titleCanvas.width = 1800;
-      titleCanvas.height = 420;
-      const titleCtx = titleCanvas.getContext("2d");
-      titleCtx.textAlign = "center";
-      titleCtx.textBaseline = "middle";
-      titleCtx.font = "700 112px Georgia, 'Times New Roman', serif";
-      titleCtx.fillStyle = "#f5dfad";
-      titleCtx.shadowColor = "#d7a94f";
-      titleCtx.shadowBlur = 28;
-      titleCtx.fillText("A²  PRESENTS", 900, 120);
-      titleCtx.font = "900 190px Georgia, 'Times New Roman', serif";
-      titleCtx.fillStyle = "#fff3d4";
-      titleCtx.shadowBlur = 38;
-      titleCtx.fillText("AYneetPYQ+", 900, 315);
-      const titleTexture = new THREE.CanvasTexture(titleCanvas);
-      titleTexture.colorSpace = THREE.SRGBColorSpace;
-      const title = new THREE.Mesh(
-        new THREE.PlaneGeometry(9.2, 2.15),
-        new THREE.MeshBasicMaterial({
-          map: titleTexture, transparent: true, opacity: 0,
-          toneMapped: false, depthWrite: false,
-        })
-      );
-      title.position.set(0, 1.1, -8);
-      scene.add(title);
-
-      const start = performance.now();
-      const duration = reduced ? 1800 : 12400;
-      const ease = (x) => x * x * (3 - 2 * x);
-      const smooth = (a, b, x) => ease(THREE.MathUtils.clamp((x - a) / (b - a), 0, 1));
-
-      const animate = (now) => {
-        if (disposed) return;
-        const t = Math.min((now - start) / 1000, duration / 1000);
-        const u = t / (duration / 1000);
-
-        if (reduced) {
-          camera.position.set(0, 0, 48);
-          title.material.opacity = 1;
-          logo.visible = false;
-          earthGroup.visible = true;
-        } else {
-          // Keep the camera framed like a cinema shot: the object, planet and title stay in view.
-          camera.position.set(0, 0, 0);
-          camera.rotation.set(0, 0, 0);
-
-          // First: almost-empty infinity. Then the star field rushes past the lens.
-          const speed = smooth(1.8, 5.1, t);
-          const positions = starGeometry.attributes.position.array;
-          for (let i = 0; i < starCount; i++) {
-            const idx = i * 3 + 2;
-            positions[idx] += speed * (2.8 + starSizes[i] * 3.4);
-            if (positions[idx] > 8) {
-              positions[idx] = -520 - Math.random() * 260;
-              positions[i * 3] = (Math.random() - .5) * 260;
-              positions[i * 3 + 1] = (Math.random() - .5) * 170;
-            }
-          }
-          starGeometry.attributes.position.needsUpdate = true;
-          stars.rotation.z = t * .012;
-
-          // A² is visible as a tiny distant mark, then grows as it rockets toward camera.
-          const approach = smooth(1.7, 5.25, t);
-          const dive = smooth(5.0, 5.8, t);
-          const scale = .035 + approach * .48;
-          logo.scale.setScalar(scale);
-          logo.position.z = -180 + approach * 166 - dive * 9;
-          logo.position.y = 1.5 - dive * 9.5;
-          logo.position.x = Math.sin(t * 1.9) * approach * .45;
-          logo.rotation.z = Math.sin(t * 2.8) * approach * .045;
-          logoMaterial.opacity = t < 1.7 ? 0 : (t < 5.75 ? 1 : 1 - smooth(5.75, 6.1, t));
-          logoGlow.position.copy(logo.position);
-          logoGlow.intensity = approach * (1 - dive) * 1250;
-
-          // Earth rises into a clear, unmistakable view before impact.
-          const earthReveal = smooth(3.5, 5.0, t);
-          earthGroup.position.y = -23 + earthReveal * 1.5;
-          earthGroup.rotation.y = t * .025;
-
-          // The mark dives into the upper horizon; rings and an expanding fireball sell the hit.
-          const impact = smooth(5.25, 5.72, t);
-          const hit = impact * (1 - smooth(6.0, 6.8, t));
-          rings.forEach((ring, i) => {
-            const ringProgress = THREE.MathUtils.clamp((t - 5.48 - i * .12) / 1.35, 0, 1);
-            ring.scale.setScalar(.18 + ringProgress * (7 + i * 2));
-            ring.material.opacity = hit * (1 - ringProgress) * .98;
-          });
-          flash.material.opacity = Math.max(0, 1 - Math.abs(t - 5.72) * 2.1) * .95;
-          const blastLife = Math.max(0, 1 - (t - 5.68) / 1.15);
-          explosion.scale.setScalar(.15 + Math.max(0, t - 5.55) * 13);
-          explosion.material.opacity = Math.max(0, blastLife) * .9;
-
-          const reveal = smooth(7.0, 8.35, t);
-          title.material.opacity = reveal;
-          title.position.y = 1.1 + (1 - reveal) * -1.0;
-          title.scale.setScalar(.9 + reveal * .1);
-
-          // Hold the title long enough to read, then reveal the homepage.
-          if (t > 10.6) host.style.opacity = String(1 - smooth(10.6, 12.4, t));
-        }
-
-        renderer.render(scene, camera);
-        if (t < duration / 1000) frame = requestAnimationFrame(animate);
-        else host.style.display = "none";
-      };
-
-      frame = requestAnimationFrame(animate);
-
-      return () => {
-        disposed = true;
-        cancelAnimationFrame(frame);
-        window.removeEventListener("resize", resize);
-        scene.traverse((object) => {
-          if (object.geometry) object.geometry.dispose();
-          if (object.material) {
-            const materials = Array.isArray(object.material) ? object.material : [object.material];
-            materials.forEach((material) => {
-              if (material.map) material.map.dispose();
-              material.dispose();
-            });
-          }
-        });
-        renderer.dispose();
-        if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement);
-      };
-    } catch (error) {
-      console.error("3D intro could not start:", error);
-      host.style.display = "none";
-      return undefined;
-    }
+    const timer = window.setTimeout(() => setVisible(false), 12600);
+    return () => window.clearTimeout(timer);
   }, []);
 
+  if (!visible) return null;
+
   return (
-    <div
-      ref={hostRef}
-      aria-label="A squared launches through deep space and arrives at Earth, presenting AYneetPYQ plus"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        width: "100%",
-        height: "100vh",
-        height: "100dvh",
-        overflow: "hidden",
-        background: "#000106",
-        opacity: 1,
-        transition: "opacity 1.4s ease",
-        pointerEvents: "none",
-      }}
-    />
+    <div className="a2-film" role="presentation">
+      <div className="a2-stars" />
+      <div className="a2-streaks" />
+      <div className="a2-earth">
+        <div className="a2-earth-clouds" />
+        <div className="a2-earth-glow" />
+      </div>
+      <div className="a2-logo-flight">A²</div>
+      <div className="a2-impact">
+        <span className="a2-blast-core" />
+        <span className="a2-blast-ring a2-ring-one" />
+        <span className="a2-blast-ring a2-ring-two" />
+        <span className="a2-blast-rays" />
+      </div>
+      <div className="a2-film-title">
+        <div>A² PRESENTS</div>
+        <strong>AYneetPYQ+</strong>
+      </div>
+      <style jsx>{`
+        .a2-film {
+          position: fixed; inset: 0; z-index: 999999; overflow: hidden;
+          width: 100%; height: 100vh; height: 100dvh; isolation: isolate;
+          background: radial-gradient(ellipse at 50% 58%, #071b35 0%, #020711 44%, #000 78%);
+          color: #fff1c9; pointer-events: none;
+          animation: film-exit 1.1s ease-in 11.5s forwards;
+        }
+        .a2-stars, .a2-streaks { position:absolute; inset:-30%; pointer-events:none; }
+        .a2-stars {
+          opacity:.8;
+          background-image:
+            radial-gradient(1px 1px at 8% 16%,#fff,transparent),
+            radial-gradient(1.5px 1.5px at 24% 72%,#d6eaff,transparent),
+            radial-gradient(1px 1px at 43% 31%,#fff,transparent),
+            radial-gradient(2px 2px at 67% 18%,#fff,transparent),
+            radial-gradient(1px 1px at 83% 63%,#d6eaff,transparent),
+            radial-gradient(1px 1px at 91% 37%,#fff,transparent),
+            radial-gradient(1px 1px at 53% 84%,#fff,transparent);
+          background-size: 230px 190px;
+          animation: star-drift 4s linear infinite;
+        }
+        .a2-streaks {
+          opacity:0; background:repeating-linear-gradient(90deg,transparent 0 7%,rgba(133,190,255,.0) 7.1% 7.3%,transparent 7.5% 14%);
+          transform:perspective(250px) rotateX(65deg) scale(1.8);
+          animation: streak-show 2.1s ease-in 2.5s forwards, streak-rush 1.5s linear 3.2s infinite;
+        }
+        .a2-earth {
+          position:absolute; width:min(118vw,780px); aspect-ratio:1; left:50%; bottom:-78%;
+          transform:translateX(-50%); border-radius:50%;
+          opacity:0;
+          background:
+            radial-gradient(ellipse at 32% 27%,rgba(255,255,255,.9) 0 1%,transparent 2%),
+            radial-gradient(ellipse at 32% 30%,#79c8a0 0 7%,transparent 8%),
+            radial-gradient(ellipse at 65% 43%,#78b58a 0 10%,transparent 11%),
+            radial-gradient(ellipse at 45% 62%,#4e9a78 0 8%,transparent 9%),
+            radial-gradient(circle at 35% 28%,#65b7df,#17619a 43%,#071c43 72%);
+          box-shadow:inset -35px -20px 80px #000b24, inset 15px 10px 45px #a8e4ff66, 0 -8px 55px #36aaff99;
+          animation: earth-rise 8s cubic-bezier(.2,.7,.2,1) 3.1s forwards;
+        }
+        .a2-earth:before {
+          content:""; position:absolute; inset:-2%; border-radius:50%;
+          border:2px solid #70caff99; box-shadow:0 0 28px #2f9eff, inset 0 0 24px #55baff66;
+        }
+        .a2-earth-clouds {
+          position:absolute; inset:5%; border-radius:50%;
+          background:repeating-linear-gradient(165deg,transparent 0 13%,#d9f3ff30 14%,transparent 16% 25%);
+          filter:blur(7px); transform:rotate(-18deg);
+        }
+        .a2-earth-glow { position:absolute; inset:-12%; border-radius:50%; background:radial-gradient(ellipse at 45% 4%,#8bdcff66,transparent 50%); }
+        .a2-logo-flight {
+          position:absolute; z-index:4; top:39%; left:50%; transform:translate(-50%,-50%) scale(.035);
+          font:900 clamp(78px,19vw,190px)/1 Georgia,serif; letter-spacing:-.08em;
+          color:#fff0bd; -webkit-text-stroke:1px #ffe0a0;
+          text-shadow:0 0 12px #fff,0 0 35px #ffc45c,0 0 80px #ff9e35;
+          opacity:0; animation: logo-flight 6.05s cubic-bezier(.15,.72,.2,1) 1.25s forwards;
+          white-space:nowrap;
+        }
+        .a2-impact { position:absolute; z-index:5; left:50%; top:59%; width:10px; height:10px; transform:translate(-50%,-50%); opacity:0; }
+        .a2-blast-core { position:absolute; inset:-2px; border-radius:50%; background:#fff9dc; box-shadow:0 0 30px 20px #fff,0 0 90px 55px #ffb23e,0 0 170px 90px #ff5a16; animation:blast-core 1.25s ease-out 5.55s both; }
+        .a2-blast-ring { position:absolute; left:50%; top:50%; width:20px; height:20px; border:4px solid #ffe8a7; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 22px #ffb94e; }
+        .a2-ring-one { animation:blast-ring 1.5s ease-out 5.55s both; }
+        .a2-ring-two { border-color:#76d5ff; animation:blast-ring 1.8s ease-out 5.72s both; }
+        .a2-blast-rays { position:absolute; inset:-4px; border-radius:50%; background:repeating-conic-gradient(#fff8d8 0 2deg,transparent 3deg 18deg); animation:blast-rays .8s ease-out 5.55s both; }
+        .a2-film-title {
+          position:absolute; z-index:8; left:5%; right:5%; top:37%; text-align:center;
+          opacity:0; transform:translateY(24px) scale(.94);
+          color:#f6dfad; text-shadow:0 0 22px #d99d43,0 2px 3px #000;
+          animation:title-arrive 1.5s cubic-bezier(.2,.8,.2,1) 7s forwards;
+        }
+        .a2-film-title div { font:600 clamp(15px,3.8vw,26px)/1.4 Georgia,serif; letter-spacing:.42em; margin-bottom:13px; }
+        .a2-film-title strong { display:block; font:900 clamp(34px,9.5vw,76px)/1.1 Georgia,serif; letter-spacing:.015em; color:#fff0c7; }
+        @keyframes star-drift { to { transform:translateY(16%); } }
+        @keyframes streak-show { to { opacity:.8; } }
+        @keyframes streak-rush { to { transform:perspective(250px) rotateX(65deg) scale(2.8) translateY(18%); } }
+        @keyframes earth-rise { 0% { opacity:0; bottom:-78%; } 100% { opacity:1; bottom:-49%; } }
+        @keyframes logo-flight {
+          0% { opacity:0; transform:translate(-50%,-50%) scale(.035); filter:blur(5px); }
+          12% { opacity:1; filter:blur(0); }
+          62% { opacity:1; transform:translate(-50%,-50%) scale(.62); }
+          82% { opacity:1; transform:translate(-50%,110%) scale(.9) rotate(-8deg); }
+          91% { opacity:1; transform:translate(-50%,125%) scale(1.15) rotate(4deg); }
+          100% { opacity:0; transform:translate(-50%,135%) scale(1.3); }
+        }
+        @keyframes blast-core { 0% { opacity:0; transform:scale(.1); } 20% { opacity:1; transform:scale(7); } 100% { opacity:0; transform:scale(18); } }
+        @keyframes blast-ring { 0% { opacity:1; transform:translate(-50%,-50%) scale(.2); } 100% { opacity:0; transform:translate(-50%,-50%) scale(34); } }
+        @keyframes blast-rays { 0% { opacity:0; transform:scale(.1) rotate(0); } 25% { opacity:1; transform:scale(9) rotate(20deg); } 100% { opacity:0; transform:scale(20) rotate(45deg); } }
+        @keyframes title-arrive { to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes film-exit { to { opacity:0; visibility:hidden; } }
+        @media (prefers-reduced-motion: reduce) {
+          .a2-film { animation:none; }
+          .a2-logo-flight,.a2-streaks,.a2-impact { display:none; }
+          .a2-earth { opacity:1; bottom:-49%; animation:none; }
+          .a2-film-title { opacity:1; transform:none; animation:none; }
+        }
+      `}</style>
+    </div>
   );
 }
