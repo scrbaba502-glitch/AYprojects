@@ -91,10 +91,10 @@ export default function CinematicIntro() {
     try {
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000106);
-      scene.fog = new THREE.FogExp2(0x00030b, 0.0018);
+      scene.fog = new THREE.FogExp2(0x00030b, 0.00045);
 
       const camera = new THREE.PerspectiveCamera(52, 1, .1, 1200);
-      camera.position.set(0, 0, 115);
+      camera.position.set(0, 0, 0);
 
       renderer = new THREE.WebGLRenderer({
         antialias: true,
@@ -147,10 +147,10 @@ export default function CinematicIntro() {
 
       // Earth: a real sphere with a painted surface and luminous atmosphere.
       const earthGroup = new THREE.Group();
-      earthGroup.position.set(0, -25, -28);
+      earthGroup.position.set(0, -23, -48);
       scene.add(earthGroup);
       const earth = new THREE.Mesh(
-        new THREE.SphereGeometry(17, 96, 64),
+        new THREE.SphereGeometry(22, 96, 64),
         new THREE.MeshPhongMaterial({
           map: makeEarthTexture(),
           shininess: 22,
@@ -161,7 +161,7 @@ export default function CinematicIntro() {
       earthGroup.add(earth);
 
       const atmosphere = new THREE.Mesh(
-        new THREE.SphereGeometry(17.55, 96, 64),
+        new THREE.SphereGeometry(22.8, 96, 64),
         new THREE.MeshBasicMaterial({
           color: 0x3eafff, transparent: true, opacity: .2,
           side: THREE.BackSide, blending: THREE.AdditiveBlending,
@@ -180,12 +180,12 @@ export default function CinematicIntro() {
         side: THREE.DoubleSide, depthWrite: false,
       });
       const logo = new THREE.Mesh(new THREE.PlaneGeometry(13, 4.5), logoMaterial);
-      logo.position.set(0, 1.5, -8);
-      logo.scale.setScalar(.012);
+      logo.position.set(0, 1.5, -180);
+      logo.scale.setScalar(.035);
       scene.add(logo);
 
       const logoGlow = new THREE.PointLight(0xffc76a, 0, 90);
-      logoGlow.position.set(0, 1.5, -5);
+      logoGlow.position.set(0, 1.5, -12);
       scene.add(logoGlow);
 
       // Impact rings expand across the scene when the mark reaches the planet.
@@ -198,7 +198,7 @@ export default function CinematicIntro() {
             transparent: true, opacity: 0, blending: THREE.AdditiveBlending,
           })
         );
-        ring.position.set(0, -10, -12);
+        ring.position.set(0, -8, -29);
         ring.rotation.x = Math.PI / 2.35;
         scene.add(ring);
         rings.push(ring);
@@ -211,7 +211,7 @@ export default function CinematicIntro() {
           blending: THREE.AdditiveBlending, depthWrite: false,
         })
       );
-      flash.position.set(0, 0, -2);
+      flash.position.set(0, -7, -5);
       scene.add(flash);
 
       const titleCanvas = document.createElement("canvas");
@@ -238,11 +238,11 @@ export default function CinematicIntro() {
           toneMapped: false, depthWrite: false,
         })
       );
-      title.position.set(0, -1, -6);
+      title.position.set(0, 1.1, -8);
       scene.add(title);
 
       const start = performance.now();
-      const duration = reduced ? 1800 : 12600;
+      const duration = reduced ? 1800 : 12400;
       const ease = (x) => x * x * (3 - 2 * x);
       const smooth = (a, b, x) => ease(THREE.MathUtils.clamp((x - a) / (b - a), 0, 1));
 
@@ -257,53 +257,60 @@ export default function CinematicIntro() {
           logo.visible = false;
           earthGroup.visible = true;
         } else {
-          // Hold in the void, then accelerate the camera through the star field.
-          const travel = smooth(1.15, 4.35, t);
-          camera.position.z = 115 - travel * 98;
-          camera.position.x = Math.sin(t * 1.4) * travel * .65;
-          camera.position.y = Math.cos(t * 1.1) * travel * .35;
-          camera.rotation.z = Math.sin(t * 1.8) * travel * .012;
+          // Keep the camera framed like a cinema shot: the object, planet and title stay in view.
+          camera.position.set(0, 0, 0);
+          camera.rotation.set(0, 0, 0);
 
-          const speed = smooth(1.15, 4.1, t);
+          // First: almost-empty infinity. Then the star field rushes past the lens.
+          const speed = smooth(1.8, 5.1, t);
           const positions = starGeometry.attributes.position.array;
           for (let i = 0; i < starCount; i++) {
             const idx = i * 3 + 2;
-            positions[idx] += speed * (1.5 + starSizes[i] * 1.7);
-            if (positions[idx] > 110) positions[idx] = -720;
+            positions[idx] += speed * (2.8 + starSizes[i] * 3.4);
+            if (positions[idx] > 8) {
+              positions[idx] = -520 - Math.random() * 260;
+              positions[i * 3] = (Math.random() - .5) * 260;
+              positions[i * 3 + 1] = (Math.random() - .5) * 170;
+            }
           }
           starGeometry.attributes.position.needsUpdate = true;
-          stars.rotation.z = t * .018;
+          stars.rotation.z = t * .012;
 
-          // The golden A² rockets out of the vanishing point and arcs down to Earth.
-          const launch = smooth(1.4, 4.5, t);
-          const impact = smooth(4.25, 4.85, t);
-          const flyScale = .012 + launch * 1.85;
-          logo.scale.setScalar(flyScale);
-          logo.position.x = Math.sin(t * 1.7) * launch * 1.1;
-          logo.position.y = 1.5 - impact * 14.5;
-          logo.position.z = -8 + launch * 12;
-          logo.rotation.z = Math.sin(t * 3) * launch * .08;
-          logoMaterial.opacity = t < 1.4 ? 0 : (t < 4.5 ? 1 : 1 - impact);
-          logoGlow.intensity = launch * (1 - impact) * 950;
+          // A² is visible as a tiny distant mark, then grows as it rockets toward camera.
+          const approach = smooth(1.7, 5.25, t);
+          const dive = smooth(5.0, 5.8, t);
+          const scale = .035 + approach * .48;
+          logo.scale.setScalar(scale);
+          logo.position.z = -180 + approach * 166 - dive * 18;
+          logo.position.y = 1.5 - dive * 9.5;
+          logo.position.x = Math.sin(t * 1.9) * approach * .45;
+          logo.rotation.z = Math.sin(t * 2.8) * approach * .045;
+          logoMaterial.opacity = t < 1.7 ? 0 : (t < 5.75 ? 1 : 1 - smooth(5.75, 6.1, t));
+          logoGlow.position.copy(logo.position);
+          logoGlow.intensity = approach * (1 - dive) * 1250;
 
-          earthGroup.rotation.y = t * .035;
-          earthGroup.position.y = -25 + smooth(3.1, 5.2, t) * 4.2;
+          // Earth rises into a clear, unmistakable view before impact.
+          const earthReveal = smooth(3.5, 5.0, t);
+          earthGroup.position.y = -23 + earthReveal * 1.5;
+          earthGroup.rotation.y = t * .025;
 
-          const hit = smooth(4.45, 4.9, t) * (1 - smooth(5.05, 5.9, t));
+          // The mark dives into the upper horizon; rings and an expanding fireball sell the hit.
+          const impact = smooth(5.25, 5.72, t);
+          const hit = impact * (1 - smooth(6.0, 6.8, t));
           rings.forEach((ring, i) => {
-            const ringProgress = THREE.MathUtils.clamp((t - 4.55 - i * .16) / 1.35, 0, 1);
-            ring.scale.setScalar(.2 + ringProgress * (5.5 + i));
-            ring.material.opacity = hit * (1 - ringProgress) * .95;
+            const ringProgress = THREE.MathUtils.clamp((t - 5.48 - i * .12) / 1.35, 0, 1);
+            ring.scale.setScalar(.18 + ringProgress * (7 + i * 2));
+            ring.material.opacity = hit * (1 - ringProgress) * .98;
           });
-          flash.material.opacity = Math.max(0, 1 - Math.abs(t - 4.85) * 2.7) * .85;
+          flash.material.opacity = Math.max(0, 1 - Math.abs(t - 5.72) * 2.1) * .95;
 
-          const reveal = smooth(6.1, 7.5, t);
+          const reveal = smooth(7.0, 8.35, t);
           title.material.opacity = reveal;
-          title.position.y = -1 + (1 - reveal) * -2.2;
-          title.scale.setScalar(.92 + reveal * .08);
-          camera.position.z -= smooth(5.5, 7.5, t) * .15;
+          title.position.y = 1.1 + (1 - reveal) * -1.0;
+          title.scale.setScalar(.9 + reveal * .1);
 
-          if (t > 9.8) host.style.opacity = String(1 - smooth(9.8, 12.3, t));
+          // Hold the title long enough to read, then reveal the homepage.
+          if (t > 10.6) host.style.opacity = String(1 - smooth(10.6, 12.4, t));
         }
 
         renderer.render(scene, camera);
