@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { tests, getQuestionsFor } from "../lib/questions";
 import TestCard from "../components/TestCard";
@@ -12,39 +13,49 @@ const meta = {
 };
 
 const topics = [
-  "Mechanics", "Genetics", "Organic Chemistry", "Human Physiology", "Optics",
-  "Chemical Bonding", "Ecology", "Electromagnetism", "Thermodynamics", "Cell Biology",
-  "Coordination Compounds", "Modern Physics", "Biotechnology", "Equilibrium",
+  "Mechanics", "Genetics", "Organic Chemistry", "Human Physiology",
+  "Optics", "Chemical Bonding", "Ecology", "Electromagnetism",
+  "Thermodynamics", "Cell Biology", "Coordination Compounds",
+  "Modern Physics", "Biotechnology", "Equilibrium",
 ];
 
 const features = [
-  { i: "⏱️", t: "Exam-grade timer", d: "A live countdown ring with auto-submit, exactly like the real hall." },
-  { i: "⌨️", t: "Keyboard-first", d: "Press A–D to answer, N / P to move, M to mark. Zero mouse needed." },
-  { i: "🔥", t: "XP, levels & streaks", d: "Every test earns XP. Climb from Aspirant to Topper and keep your daily streak alive." },
-  { i: "🕸️", t: "Radar analytics", d: "See your Physics / Chemistry / Biology balance as a shape, not a table." },
-  { i: "🧠", t: "Instant explanations", d: "Every answer comes with a reason and the time you spent on it." },
-  { i: "🎉", t: "Made to feel good", d: "Count-up scores, confetti and smooth motion keep practice addictive." },
+  { i: "⏱️", t: "Exam-grade timer", d: "A live countdown ring with auto-submit, like the real exam." },
+  { i: "⌨️", t: "Keyboard-first", d: "Use A–D to answer, N / P to move and M to mark." },
+  { i: "🔥", t: "XP, levels & streaks", d: "Earn XP, climb levels and keep your practice streak alive." },
+  { i: "🕸️", t: "Radar analytics", d: "Understand your Physics, Chemistry and Biology performance." },
+  { i: "🧠", t: "Instant explanations", d: "Learn why an answer is correct or incorrect." },
+  { i: "🎉", t: "Made to feel good", d: "Smooth animations and rewarding progress." },
 ];
 
 export default function Home() {
   return (
     <>
-      {/* HERO */}
+      <div className="cinematic-intro" aria-label="A squared presents AYneetPYQ plus">
+        <div className="intro-stars" />
+        <div className="intro-earth" />
+        <div className="intro-impact">A²</div>
+        <div className="intro-caption">
+          <span>A² PRESENTS</span>
+          <strong>AYneetPYQ+</strong>
+        </div>
+      </div>
+
       <section className="hero">
         <div className="herotext">
-          <span className="chip">✨ NEET practice, reimagined</span>
+          <span className="chip">✦ YOUR NEET JOURNEY STARTS HERE</span>
           <h1>
-            Don&apos;t just practise.
+            Prepare with purpose.
             <br />
-            <span className="grad">Level up</span> to your rank.
+            <span className="grad">Rise beyond limits.</span>
           </h1>
           <p className="lead">
-            Timed tests, NEET-style +4 / −1 marking, XP, streaks and a radar view of your strengths — all in
-            one beautifully fast app.
+            Your NEET preparation companion. Practice tests, track progress,
+            understand your mistakes and keep moving towards your dream.
           </p>
           <div className="row">
-            <Link href="/#tests" className="btn">Start a test</Link>
-            <Link href="/#features" className="btn ghost">See what&apos;s inside</Link>
+            <Link href="/#tests" className="btn">Explore tests</Link>
+            <Link href="/#dashboard" className="btn ghost">My progress</Link>
           </div>
         </div>
 
@@ -54,9 +65,10 @@ export default function Home() {
           <span className="orb o2">🧪</span>
           <span className="orb o3">🧬</span>
           <div className="glass scorecard">
-            <p className="eyebrow">Sample scorecard</p>
+            <p className="eyebrow">YOUR POTENTIAL</p>
             <div className="row center">
-              <Ring value={0.85} size={110} stroke={9} label={<><b>612</b><small>/ 720</small></>} />
+              <Ring value={0.85} size={110} stroke={9}
+                label={<><b>612</b><small>/ 720</small></>} />
               <div>
                 <p className="stat">✅ 158 correct</p>
                 <p className="stat">❌ 20 wrong</p>
@@ -72,7 +84,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MARQUEE */}
       <div className="marquee" aria-hidden="true">
         <div className="track">
           {[...topics, ...topics].map((t, i) => (
@@ -81,10 +92,9 @@ export default function Home() {
         </div>
       </div>
 
-      {/* TESTS */}
       <section id="tests" className="section">
-        <p className="eyebrow">Test series</p>
-        <h2>Pick your battle</h2>
+        <p className="eyebrow">YOUR PREPARATION</p>
+        <h2>Choose your next challenge</h2>
         <div className="grid">
           {tests.map((t) => (
             <TestCard
@@ -98,17 +108,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* DASHBOARD */}
       <section id="dashboard" className="section">
-        <p className="eyebrow">Your progress</p>
-        <h2>Every test makes you stronger</h2>
+        <p className="eyebrow">YOUR JOURNEY</p>
+        <h2>Every effort moves you forward</h2>
         <Dashboard />
       </section>
 
-      {/* FEATURES */}
       <section id="features" className="section">
-        <p className="eyebrow">Why AYneetpyq+</p>
-        <h2>Built different</h2>
+        <p className="eyebrow">THE AYneetPYQ+ EXPERIENCE</p>
+        <h2>Everything you need to improve</h2>
         <div className="feats">
           {features.map((f) => (
             <div className="glass feat" key={f.t}>
@@ -118,6 +126,16 @@ export default function Home() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="mission">
+        <p className="eyebrow">OUR PURPOSE</p>
+        <h2>Education should never be a privilege.</h2>
+        <p>
+          Our goal is simple: free education for everyone, with NEET previous
+          year questions, clear explanations and practice mock tests.
+        </p>
+        <strong>A² — Learning without limits.</strong>
       </section>
     </>
   );
