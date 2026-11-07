@@ -6,7 +6,7 @@ export default function CinematicIntro() {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setVisible(false), 12600);
+    const timer = window.setTimeout(() => setVisible(false), 14800);
     return () => window.clearTimeout(timer);
   }, []);
 
