@@ -232,13 +232,13 @@ export default function CinematicIntro() {
       const titleTexture = new THREE.CanvasTexture(titleCanvas);
       titleTexture.colorSpace = THREE.SRGBColorSpace;
       const title = new THREE.Mesh(
-        new THREE.PlaneGeometry(35, 8.2),
+        new THREE.PlaneGeometry(9.2, 2.15),
         new THREE.MeshBasicMaterial({
           map: titleTexture, transparent: true, opacity: 0,
           toneMapped: false, depthWrite: false,
         })
       );
-      title.position.set(0, -1, 8);
+      title.position.set(0, -1, -6);
       scene.add(title);
 
       const start = performance.now();
