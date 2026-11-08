@@ -1,306 +1,168 @@
-
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createSpaceScene } from "../lib/spaceScene";
-import { createIntroSound } from "../lib/introSound";
-import { TL, phaseAt } from "../lib/introTimeline";
+import { useEffect, useState } from "react";
 
-const SEEN = "a2-intro-seen";
-
-// Plays once per browser tab/session:
-//   1) a golden A² is thrown from infinity toward Earth  2) it hits — explosion + Earth  3) "A² presents AYneetPYQ+"
-// Falls back to a lightweight CSS animation if WebGL2 isn't available, and to a short
-// static title card if the visitor prefers reduced motion.
 export default function CinematicIntro() {
-  const [status, setStatus] = useState("pending"); // pending | play | static | done
-  const [phase, setPhase] = useState("void");
-  const [gl, setGl] = useState(true);
-  const [audio, setAudio] = useState("locked"); // locked | on | muted
-  const canvasRef = useRef(null);
-  const soundRef = useRef(null);
-  const skipRef = useRef(null);
-  const panelRef = useRef(null);
-  const retRef = useRef(null);
-  const flagRef = useRef(null);
-  const rangeRef = useRef(null);
-  const etaRef = useRef(null);
+  const [visible, setVisible] = useState(true);
 
-  // decide what to do on first client render
   useEffect(() => {
-    let seen = false;
-    try {
-      seen = sessionStorage.getItem(SEEN) === "1";
-    } catch (e) {}
-    if (seen) {
-      setStatus("done");
-      return;
-    }
-    const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setStatus(reduced ? "static" : "play");
+    const timer = window.setTimeout(() => setVisible(false), 14800);
+    return () => window.clearTimeout(timer);
   }, []);
 
-  // lock page scroll while the overlay is up
-  useEffect(() => {
-    if (status !== "play" && status !== "static") return;
-    const prev = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.documentElement.style.overflow = prev;
-    };
-  }, [status]);
-
-  // reduced-motion: short static title card
-  useEffect(() => {
-    if (status !== "static") return;
-    setPhase("reveal");
-    const a = setTimeout(() => setPhase("exit"), 2200);
-    const b = setTimeout(() => {
-      try {
-        sessionStorage.setItem(SEEN, "1");
-      } catch (e) {}
-      setStatus("done");
-    }, 3000);
-    return () => {
-      clearTimeout(a);
-      clearTimeout(b);
-    };
-  }, [status]);
-
-  // the cinematic
-  useEffect(() => {
-    if (status !== "play") return;
-
-    const sound = createIntroSound();
-    soundRef.current = sound;
-
-    const scene = canvasRef.current ? createSpaceScene(canvasRef.current, { onError: (e) => console.warn("[intro]", e) }) : null;
-    if (!scene) setGl(false);
-
-    const running = sound.tryStart();
-    setAudio(sound.muted ? "muted" : running ? "on" : "locked");
-
-    const unlock = (e) => {
-      if (e && e.target && e.target.closest && e.target.closest(".intro-sound")) return;
-      sound.tryStart();
-      setTimeout(() => setAudio(sound.muted ? "muted" : sound.isRunning() ? "on" : "locked"), 60);
-    };
-    const gestures = ["pointerdown", "keydown", "touchstart"];
-    gestures.forEach((g) => window.addEventListener(g, unlock, { passive: true }));
-    const onResize = () => scene && scene.resize();
-    window.addEventListener("resize", onResize);
-
-    let t = 0;
-    let last = performance.now();
-    let raf = 0;
-    let cur = "void";
-    let frames = 0;
-    let ema = 1 / 60;
-    let lastScale = 0;
-    let scaleSteps = 0;
-    let flagTxt = "";
-    let finished = false;
-    const clamp01 = (x) => Math.min(1, Math.max(0, x));
-
-    const markSeen = () => {
-      try {
-        sessionStorage.setItem(SEEN, "1");
-      } catch (e) {}
-    };
-
-    skipRef.current = () => {
-      markSeen();
-      if (t < TL.exit) t = TL.exit;
-    };
-
-    const tick = (now) => {
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
-      t += dt;
-
-      // dynamic resolution: if we can't hold ~60fps, trade pixels for smoothness
-      frames++;
-      ema = ema * 0.92 + dt * 0.08;
-      if (scene && !window.__noDRS && frames > 24 && ema > 0.0225 && now - lastScale > 1400 && scaleSteps < 4) {
-        scene.setDpr(Math.max(0.7, scene.dpr * 0.85));
-        scaleSteps++;
-        lastScale = now;
-        ema = 1 / 60;
-      }
-
-      if (scene) scene.render(Math.min(t, TL.exit + 0.9));
-
-      // engineering HUD: live telemetry without React re-renders
-      if (scene && scene.info) {
-        const info = scene.info;
-        const panel = panelRef.current, ret = retRef.current;
-        if (panel) {
-          panel.style.opacity = String(clamp01((t - 0.9) / 0.7) * (1 - clamp01((t - (TL.reveal - 0.5)) / 0.5)));
-          const txt = t < TL.impact ? "TRAJECTORY LOCKED" : "IMPACT CONFIRMED";
-          if (txt !== flagTxt && flagRef.current) {
-            flagTxt = txt;
-            flagRef.current.textContent = txt;
-          }
-          if (rangeRef.current) rangeRef.current.textContent = Math.round(t < TL.impact ? info.range : 0).toLocaleString("en-US") + " km";
-          if (etaRef.current) {
-            const r = Math.max(0, TL.impact - t);
-            etaRef.current.textContent = "00:" + (r < 10 ? "0" : "") + r.toFixed(2);
-          }
-        }
-        if (ret) {
-          const size = Math.min(380, Math.max(56, info.r * 2.5));
-          ret.style.opacity = String(info.vis);
-          ret.style.width = ret.style.height = size + "px";
-          ret.style.transform = "translate3d(" + (info.x - size / 2).toFixed(1) + "px," + (info.y - size / 2).toFixed(1) + "px,0)";
-        }
-      }
-      sound.sync(t);
-
-      const ph = phaseAt(t);
-      if (ph !== cur) {
-        cur = ph;
-        setPhase(ph);
-        if (ph === "exit") {
-          markSeen();
-          sound.fadeOut();
-        }
-      }
-
-      if (t >= TL.end) {
-        if (!finished) {
-          finished = true;
-          setStatus("done");
-        }
-        return;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      gestures.forEach((g) => window.removeEventListener(g, unlock));
-      window.removeEventListener("resize", onResize);
-      if (scene) scene.destroy();
-      sound.fadeOut();
-      sound.destroy();
-      soundRef.current = null;
-      skipRef.current = null;
-    };
-  }, [status]);
-
-  function toggleSound() {
-    const s = soundRef.current;
-    if (!s) return;
-    if (audio === "muted") {
-      s.setMuted(false);
-      setAudio(s.tryStart() ? "on" : "locked");
-      setTimeout(() => setAudio(s.isRunning() ? "on" : "locked"), 80);
-    } else if (audio === "on") {
-      s.setMuted(true);
-      setAudio("muted");
-    } else {
-      s.tryStart();
-      setTimeout(() => setAudio(s.isRunning() ? "on" : "locked"), 80);
-    }
-  }
-
-  if (status === "done") return null;
-  if (status === "pending") return <div className="intro-cover" aria-hidden="true" />;
-
-  const skip = () => {
-    if (skipRef.current) skipRef.current();
-    else {
-      try {
-        sessionStorage.setItem(SEEN, "1");
-      } catch (e) {}
-      setStatus("done");
-    }
-  };
-
-  const soundLabel = audio === "on" ? "🔊 Sound on" : audio === "muted" ? "🔇 Sound off" : "🔈 Tap for sound";
+  if (!visible) return null;
 
   return (
-    <div
-      className={`cinematic-intro intro-${phase} ${gl && status === "play" ? "has-gl" : "no-gl"}`}
-      role="dialog"
-      aria-label="A squared presents AYneetPYQ Plus"
-    >
-      {gl && status === "play" ? (
-        <canvas ref={canvasRef} className="intro-canvas" aria-hidden="true" />
-      ) : (
-        <>
-          <div className="space-stars" />
-          <div className="space-nebula" />
-          <div className="earth-horizon"><span className="earth-glow" /></div>
-          <div className="meteor"><i /><b /><em>A<sup>²</sup></em></div>
-          <div className="impact-ring" />
-        </>
-      )}
-
-      <div className="hud" aria-hidden="true">
-        <div className="hud-panel" ref={panelRef}>
-          <p className="hud-flag"><i /><b ref={flagRef}>TRAJECTORY LOCKED</b></p>
-          <dl>
-            <div><dt>OBJECT</dt><dd>A²</dd></div>
-            <div><dt>TARGET</dt><dd>EARTH</dd></div>
-            <div><dt>RANGE</dt><dd ref={rangeRef}>384,400 km</dd></div>
-            <div><dt>T–MINUS</dt><dd ref={etaRef}>00:05.60</dd></div>
-          </dl>
-        </div>
-        <div className="hud-ret" ref={retRef}>
-          <div className="hud-ret-in"><i /><i /><i /><i /></div>
-        </div>
+    <div className="a2-film" role="presentation">
+      <div className="a2-stars" />
+      <div className="a2-infinity-tunnel"><i /><i /><i /><i /><i /></div>
+      <div className="a2-vanishing-point" />
+      <div className="a2-streaks" />
+      <div className="a2-earth">
+        <div className="a2-earth-clouds" />
+        <div className="a2-earth-glow" />
       </div>
-
-      <div className="intro-brand">
-        <div className="intro-seal">
-          <svg className="seal-ring" viewBox="0 0 200 200" aria-hidden="true">
-            <defs>
-              <linearGradient id="sealGold" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stopColor="#fff1c0" />
-                <stop offset=".5" stopColor="#c9972f" />
-                <stop offset="1" stopColor="#f5dc92" />
-              </linearGradient>
-            </defs>
-            <circle className="seal-c1" cx="100" cy="100" r="94" />
-            <path className="seal-ticks" d="M100 0v12M100 188v12M0 100h12M188 100h12" />
-          </svg>
-          <div className="intro-emblem">A<sup>²</sup></div>
-        </div>
-        <p className="intro-presents"><i /><span>A² PRESENTS</span><i /></p>
-        <h1 aria-label="AYneetPYQ+">
-          <span className="w1">
-            {"AYneet".split("").map((ch, i) => (
-              <span key={i} className="ch" style={{ "--i": i }} aria-hidden="true">{ch}</span>
-            ))}
-          </span>
-          <span className="w2">
-            {"PYQ".split("").map((ch, i) => (
-              <span key={i} className="ch" style={{ "--i": i + 6 }} aria-hidden="true">{ch}</span>
-            ))}
-            <span className="ch plus" style={{ "--i": 9 }} aria-hidden="true">+</span>
-          </span>
-        </h1>
-        <div className="intro-rule"><b /></div>
-        <p className="intro-tagline">DREAM. PREPARE. EXCEL.</p>
+      <div className="a2-logo-flight">A²</div>
+      <div className="a2-impact">
+        <span className="a2-blast-core" />
+        <span className="a2-blast-ring a2-ring-one" />
+        <span className="a2-blast-ring a2-ring-two" />
+        <span className="a2-blast-rays" />
       </div>
-
-      <div className="intro-frame" aria-hidden="true"><i /><i /><i /><i /></div>
-      <div className="intro-meta" aria-hidden="true"><span>NEET UG 2027</span><span>PYQ 2019 — 2026</span></div>
-      <div className="intro-bar top" aria-hidden="true" />
-      <div className="intro-bar bottom" aria-hidden="true" />
-
-      {status === "play" && (
-        <button className="intro-sound" onClick={toggleSound} aria-label="Toggle intro sound">
-          {soundLabel}
-        </button>
-      )}
-      <button className="intro-skip" onClick={skip}>Skip intro <span>↗</span></button>
-    </div>
-  );
-}
-         .a2-logo-flight,.a2-streaks,.a2-impact,.a2-infinity-tunnel,.a2-vanishing-point { display:none; }
+      <div className="a2-film-title">
+        <div>A² PRESENTS</div>
+        <strong>AYneetPYQ+</strong>
+      </div>
+      <style jsx>{`
+        .a2-film {
+          position: fixed; inset: 0; z-index: 999999; overflow: hidden;
+          width: 100%; height: 100vh; height: 100dvh; isolation: isolate;
+          background: #000;
+          color: #fff1c9; pointer-events: none;
+          animation: film-exit 1.1s ease-in 13.7s forwards;
+        }
+        .a2-stars, .a2-streaks { position:absolute; inset:-30%; pointer-events:none; }
+        .a2-stars {
+          opacity:.12;
+          background-image:
+            radial-gradient(1px 1px at 8% 16%,#fff,transparent),
+            radial-gradient(1.5px 1.5px at 24% 72%,#d6eaff,transparent),
+            radial-gradient(1px 1px at 43% 31%,#fff,transparent),
+            radial-gradient(2px 2px at 67% 18%,#fff,transparent),
+            radial-gradient(1px 1px at 83% 63%,#d6eaff,transparent),
+            radial-gradient(1px 1px at 91% 37%,#fff,transparent),
+            radial-gradient(1px 1px at 53% 84%,#fff,transparent);
+          background-size: 230px 190px;
+          animation: star-drift 4s linear infinite, stars-brighten 3.4s ease-in 2.2s forwards;
+        }
+        .a2-infinity-tunnel {
+          position:absolute; z-index:1; left:50%; top:43%; width:min(150vw,1100px); aspect-ratio:1;
+          transform:translate(-50%,-50%) scale(.025); opacity:0;
+          border-radius:50%; filter:blur(1px);
+          background:repeating-radial-gradient(ellipse at center, transparent 0 5.8%, rgba(85,157,255,.18) 6%, transparent 6.35% 12%);
+          mask-image:radial-gradient(ellipse, #000 0 24%, transparent 72%);
+          animation:tunnel-open 4.8s cubic-bezier(.12,.72,.18,1) .35s forwards;
+        }
+        .a2-infinity-tunnel i {
+          position:absolute; inset:12%; border:1px solid #8bcaff55; border-radius:50%;
+          transform:rotateX(68deg) scaleY(.56); box-shadow:0 0 24px #268fff33,inset 0 0 22px #268fff22;
+          animation:tunnel-pulse 1.8s ease-in-out infinite alternate;
+        }
+        .a2-infinity-tunnel i:nth-child(2) { inset:25%; animation-delay:.2s; }
+        .a2-infinity-tunnel i:nth-child(3) { inset:38%; animation-delay:.4s; }
+        .a2-infinity-tunnel i:nth-child(4) { inset:51%; animation-delay:.6s; }
+        .a2-infinity-tunnel i:nth-child(5) { inset:64%; animation-delay:.8s; }
+        .a2-vanishing-point {
+          position:absolute; z-index:2; left:50%; top:43%; width:3px; height:3px; border-radius:50%;
+          background:#fff; opacity:0; transform:translate(-50%,-50%);
+          box-shadow:0 0 5px 2px #fff,0 0 18px 7px #6dbbff;
+          animation:point-bloom 4.9s ease-in .2s forwards;
+        }
+        .a2-streaks {
+          opacity:0; background:repeating-conic-gradient(from 0deg at 50% 43%,transparent 0deg 5deg,rgba(122,190,255,.48) 5.15deg 5.35deg,transparent 5.5deg 12deg);
+          transform:perspective(250px) rotateX(65deg) scale(1.8);
+          animation: streak-show 1.2s ease-in 2.8s forwards, streak-rush 1.2s ease-in 3.5s infinite;
+        }
+        .a2-earth {
+          position:absolute; width:min(118vw,780px); aspect-ratio:1; left:50%; bottom:-78%;
+          transform:translateX(-50%); border-radius:50%;
+          opacity:0;
+          background:
+            radial-gradient(ellipse at 32% 27%,rgba(255,255,255,.9) 0 1%,transparent 2%),
+            radial-gradient(ellipse at 32% 30%,#79c8a0 0 7%,transparent 8%),
+            radial-gradient(ellipse at 65% 43%,#78b58a 0 10%,transparent 11%),
+            radial-gradient(ellipse at 45% 62%,#4e9a78 0 8%,transparent 9%),
+            radial-gradient(circle at 35% 28%,#65b7df,#17619a 43%,#071c43 72%);
+          box-shadow:inset -35px -20px 80px #000b24, inset 15px 10px 45px #a8e4ff66, 0 -8px 55px #36aaff99;
+          animation: earth-rise 7s cubic-bezier(.2,.7,.2,1) 4.1s forwards;
+        }
+        .a2-earth:before {
+          content:""; position:absolute; inset:-2%; border-radius:50%;
+          border:2px solid #70caff99; box-shadow:0 0 28px #2f9eff, inset 0 0 24px #55baff66;
+        }
+        .a2-earth-clouds {
+          position:absolute; inset:5%; border-radius:50%;
+          background:repeating-linear-gradient(165deg,transparent 0 13%,#d9f3ff30 14%,transparent 16% 25%);
+          filter:blur(7px); transform:rotate(-18deg);
+        }
+        .a2-earth-glow { position:absolute; inset:-12%; border-radius:50%; background:radial-gradient(ellipse at 45% 4%,#8bdcff66,transparent 50%); }
+        .a2-logo-flight {
+          position:absolute; z-index:4; top:43%; left:50%; transform:translate(-50%,-50%) scale(.006);
+          font:900 clamp(78px,19vw,190px)/1 Georgia,serif; letter-spacing:-.08em;
+          color:#fff0bd; -webkit-text-stroke:1px #ffe0a0;
+          text-shadow:0 0 12px #fff,0 0 35px #ffc45c,0 0 80px #ff9e35;
+          opacity:0; animation: logo-flight 6.35s cubic-bezier(.12,.72,.16,1) .35s forwards;
+          white-space:nowrap;
+        }
+        .a2-impact { position:absolute; z-index:5; left:50%; top:59%; width:10px; height:10px; transform:translate(-50%,-50%); opacity:0; }
+        .a2-blast-core { position:absolute; inset:-2px; border-radius:50%; background:#fff9dc; box-shadow:0 0 30px 20px #fff,0 0 90px 55px #ffb23e,0 0 170px 90px #ff5a16; animation:blast-core 1.25s ease-out 5.55s both; }
+        .a2-blast-ring { position:absolute; left:50%; top:50%; width:20px; height:20px; border:4px solid #ffe8a7; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 22px #ffb94e; }
+        .a2-ring-one { animation:blast-ring 1.5s ease-out 5.55s both; }
+        .a2-ring-two { border-color:#76d5ff; animation:blast-ring 1.8s ease-out 5.72s both; }
+        .a2-blast-rays { position:absolute; inset:-4px; border-radius:50%; background:repeating-conic-gradient(#fff8d8 0 2deg,transparent 3deg 18deg); animation:blast-rays .8s ease-out 5.55s both; }
+        .a2-film-title {
+          position:absolute; z-index:8; left:5%; right:5%; top:37%; text-align:center;
+          opacity:0; transform:translateY(24px) scale(.94);
+          color:#f6dfad; text-shadow:0 0 22px #d99d43,0 2px 3px #000;
+          animation:title-arrive 1.5s cubic-bezier(.2,.8,.2,1) 7s forwards;
+        }
+        .a2-film-title div { font:600 clamp(15px,3.8vw,26px)/1.4 Georgia,serif; letter-spacing:.42em; margin-bottom:13px; }
+        .a2-film-title strong { display:block; font:900 clamp(34px,9.5vw,76px)/1.1 Georgia,serif; letter-spacing:.015em; color:#fff0c7; }
+        @keyframes star-drift { to { transform:translateY(16%); } }
+        @keyframes stars-brighten { to { opacity:.85; } }
+        @keyframes tunnel-open {
+          0% { opacity:0; transform:translate(-50%,-50%) scale(.025) rotate(0); }
+          22% { opacity:.95; }
+          72% { opacity:.8; transform:translate(-50%,-50%) scale(1.1) rotate(90deg); }
+          100% { opacity:0; transform:translate(-50%,-50%) scale(2.7) rotate(160deg); }
+        }
+        @keyframes tunnel-pulse { from { opacity:.25; } to { opacity:.9; } }
+        @keyframes point-bloom {
+          0% { opacity:0; transform:translate(-50%,-50%) scale(.3); }
+          18% { opacity:1; transform:translate(-50%,-50%) scale(1); }
+          66% { opacity:1; transform:translate(-50%,-50%) scale(3); }
+          100% { opacity:0; transform:translate(-50%,-50%) scale(35); }
+        }
+        @keyframes streak-show { to { opacity:.8; } }
+        @keyframes streak-rush { to { transform:perspective(250px) rotateX(65deg) scale(5) translateY(18%); } }
+        @keyframes earth-rise { 0% { opacity:0; bottom:-78%; } 100% { opacity:1; bottom:-49%; } }
+        @keyframes logo-flight {
+          0% { opacity:0; transform:translate(-50%,-50%) scale(.006); filter:blur(8px); }
+          10% { opacity:.7; transform:translate(-50%,-50%) scale(.012); filter:blur(3px); }
+          30% { opacity:1; transform:translate(-50%,-50%) scale(.09); filter:blur(1px); }
+          62% { opacity:1; transform:translate(-50%,-50%) scale(.62); filter:blur(0); }
+          82% { opacity:1; transform:translate(-50%,110%) scale(.9) rotate(-8deg); }
+          91% { opacity:1; transform:translate(-50%,125%) scale(1.15) rotate(4deg); }
+          100% { opacity:0; transform:translate(-50%,135%) scale(1.3); }
+        }
+        @keyframes blast-core { 0% { opacity:0; transform:scale(.1); } 20% { opacity:1; transform:scale(7); } 100% { opacity:0; transform:scale(18); } }
+        @keyframes blast-ring { 0% { opacity:1; transform:translate(-50%,-50%) scale(.2); } 100% { opacity:0; transform:translate(-50%,-50%) scale(34); } }
+        @keyframes blast-rays { 0% { opacity:0; transform:scale(.1) rotate(0); } 25% { opacity:1; transform:scale(9) rotate(20deg); } 100% { opacity:0; transform:scale(20) rotate(45deg); } }
+        @keyframes title-arrive { to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes film-exit { to { opacity:0; visibility:hidden; } }
+        @media (prefers-reduced-motion: reduce) {
+          .a2-film { animation:none; }
+          .a2-logo-flight,.a2-streaks,.a2-impact,.a2-infinity-tunnel,.a2-vanishing-point { display:none; }
           .a2-earth { opacity:1; bottom:-49%; animation:none; }
           .a2-film-title { opacity:1; transform:none; animation:none; }
         }
