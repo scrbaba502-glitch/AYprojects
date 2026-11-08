@@ -4,13 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "validate": "node scripts/validate-pyq.mjs",
+    "prebuild": "node scripts/validate-pyq.mjs",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "import:pyq": "node scripts/import-pyq-csv.mjs"
   },
   "dependencies": {
     "next": "14.2.15",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "three": "^0.170.0"
+    "react-dom": "^18.3.1"
   }
 }

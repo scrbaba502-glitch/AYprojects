@@ -5,6 +5,7 @@ import Ring from "./Ring";
 import Radar from "./Radar";
 import Confetti from "./Confetti";
 import { recordAttempt } from "../lib/progress";
+import { STATUS_LABEL } from "../lib/pyqLabels";
 
 const CORRECT = 4;
 const WRONG = -1;
@@ -262,16 +263,18 @@ export default function TestRunner({ test, questions }) {
           return (
             <div className={`glass review ${status}`} key={qq.id}>
               <div className="row between">
-                <span className="muted small">Q{i + 1} · {qq.subject} · {qq.chapter}</span>
+                <span className="muted small">Q{i + 1} · {qq.year ? `NEET ${qq.year} Q${qq.qno} · ` : ""}{qq.subject} · {qq.chapter}</span>
                 <span className="muted small">⏱ {spent[qq.id] || 0}s</span>
               </div>
               <p className="rq"><b>{qq.q}</b></p>
+              {qq.image && <img className="qimg" src={qq.image} alt="Question figure" />}
               <p className="small">
                 Your answer: <b>{a === undefined ? "Not attempted" : qq.options[a]}</b>
                 <br />
                 Correct answer: <b>{qq.options[qq.answer]}</b>
               </p>
-              <p className="muted small">💡 {qq.explanation}</p>
+              {qq.explanation && <p className="muted small">💡 {qq.explanation}</p>}
+              {qq.year && <span className={`xbadge ${qq.explanationStatus}`}>{STATUS_LABEL[qq.explanationStatus] || STATUS_LABEL.missing}</span>}
             </div>
           );
         })}
@@ -309,6 +312,7 @@ export default function TestRunner({ test, questions }) {
           </div>
           <p className="muted small chap">{q.chapter}</p>
           <h2 className="qtext">{q.q}</h2>
+          {q.image && <img className="qimg" src={q.image} alt="Question figure" />}
 
           <div className="options">
             {q.options.map((o, i) => (
