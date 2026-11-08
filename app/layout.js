@@ -1,10 +1,13 @@
 
 import "./globals.css";
+import CinematicIntro from "../components/CinematicIntro";
 import Link from "next/link";
-import { Space_Grotesk, Inter } from "next/font/google";
+import ReplayIntro from "../components/ReplayIntro";
+import { Cormorant_Garamond, Inter } from "next/font/google";
 
-const display = Space_Grotesk({
+const display = Cormorant_Garamond({
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
   variable: "--font-display",
 });
 
@@ -14,15 +17,17 @@ const body = Inter({
 });
 
 export const metadata = {
-  title: "AYneetPYQ+ | A² Presents",
+  title: "AYneetPYQ+ | NEET Practice, Reimagined",
   description:
-    "Free NEET education with previous year questions, detailed explanations, and practice mock tests.",
+    "A premium NEET preparation platform with previous-year questions, mock tests and progress tracking.",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
+        <CinematicIntro />
+
         <div className="aurora" aria-hidden="true">
           <i />
           <i />
@@ -40,6 +45,7 @@ export default function RootLayout({ children }) {
           </Link>
 
           <nav className="links">
+            <Link href="/pyq">PYQs</Link>
             <Link href="/#tests">Tests</Link>
             <Link href="/#dashboard">Progress</Link>
             <Link href="/#features" className="navcta">
@@ -54,9 +60,12 @@ export default function RootLayout({ children }) {
           <span className="brand">
             AYneetPYQ<em>+</em>
           </span>
+
           <span className="muted small">
             Practice smart. Score higher.
           </span>
+
+          <ReplayIntro />
         </footer>
       </body>
     </html>
